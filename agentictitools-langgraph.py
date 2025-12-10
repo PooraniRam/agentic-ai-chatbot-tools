@@ -115,5 +115,17 @@ print(f"Graph saved successfully to: {os.path.abspath(output_filename)}")
 
 
 
+from langchain_core.messages import HumanMessage
 
+# 1. Format the input string into a HumanMessage object, wrapped in a list
+user_input_message_list = [HumanMessage(content="1706.03762")]
+
+# 2. Invoke the graph with a DICTIONARY that uses the state key "messages"
+messages = graph_builder.invoke({"messages": user_input_message_list})
+print(messages)
+
+# Pretty print is organized and readable
+# import pprint
+# print("\n--- pprint.pprint() ---")
+# pprint.pprint(messages)
 
