@@ -44,3 +44,76 @@ print("LLM Results:::",llm.invoke("Who is Modi"))
 
 ### Our aim is combined all the tool with LLM
 #https://www.youtube.com/watch?v=HCSPIH3I-vc&list=PLZoTAELRMXVPFd7JdvB-rnTb_5V26NYNO&index=3
+
+
+#  How do we combine all the tools
+llm_with_tools = llm.bind_tools(tools=tools)
+
+# Execue the LLM call
+print("LLM calls to specific tool:::  ",llm_with_tools.invoke("latest rearch in quantum"))
+
+# ReAct(Reasoning Act)Architecture
+
+# Create a workflow using langgraph
+from typing_extensions import TypedDict # maintain entire state
+from langchain_core.messages import AnyMessage # AI Message or human message
+from typing import Annotated # labelling
+from langgraph.graph.message import add_messages # Reducers in langgraph
+
+# Step1: Create a schema
+from typing import TypedDict
+class State(TypedDict):
+    messages: Annotated[list[AnyMessage], add_messages]# add messgae is reducer, it will NOT override the message - It will append the message
+
+
+
+# Entire chatbot with langgraph
+from IPython.display import Image, display
+from langgraph.graph import StateGraph, START, END
+from langgraph.prebuilt import ToolNode
+from langgraph.prebuilt import tools_condition
+
+# Node definition
+def tool_calling_llm (state: State):
+    return {"messages" : [llm_with_tools.invoke(state["messages"])]}
+
+# Build graph
+builder = StateGraph(State)
+builder.add_node("tool_calling_llm", tool_calling_llm)
+builder.add_node("tools", ToolNode(tools=tools))
+
+
+# Edges
+builder.add_edge(START, "tool_calling_llm")
+# ----- MORE IMPORTANT ------->
+builder.add_conditional_edges("tool_calling_llm"
+                              
+    # if the latest meesage(result) from assistant is a tool call -> tools_condition routes to tool
+    # if the latest meesage(result) from assistant is NOT a tool call -> tools_condition routes to end
+                              ,tools_condition)
+
+builder.add_edge("tools", END)
+
+
+# Display Graph
+import os
+
+## Run the grpah, we need to compile the graph
+graph_builder = builder.compile()
+
+# 1. Get the binary PNG data
+png_data = graph_builder.get_graph().draw_mermaid_png()
+
+# 2. Define the output file path
+output_filename = "langgraph_visualization.png"
+
+# 3. Write the binary data to the file
+with open(output_filename, "wb") as f:
+    f.write(png_data)
+
+print(f"Graph saved successfully to: {os.path.abspath(output_filename)}")
+
+
+
+
+
